@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>note 用 Markdown クリーナー</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6 gap-8">
+  <h1 class="text-2xl font-bold">note クリーナー Web アプリ</h1>
+
+  <!-- 入力欄 -->
+  <section class="w-full max-w-5xl">
+    <h2 class="font-semibold mb-1">元記事 (Markdown)</h2>
+    <textarea id="input" rows="12" spellcheck="false"
+              class="w-full p-3 rounded border resize-y"></textarea>
+    <button id="run"
+            class="mt-3 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700">
+      変換
+    </button>
+    <p id="err" class="text-sm text-red-600 mt-2 hidden">Markdown を入力してください。</p>
+  </section>
+
+  <!-- 出力欄 -->
+  <section id="output" class="w-full max-w-5xl hidden flex-col gap-8">
+    <!-- タイトル -->
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <h3 class="font-semibold">タイトル</h3>
+        <button data-copy="title"
+                class="copy-btn text-sm px-2 py-1 bg-gray-200 rounded hover:bg-gray-300">
+          コピー
+        </button>
+      </div>
+      <textarea id="title" rows="2" readonly
+                class="w-full p-3 rounded border bg-gray-100"></textarea>
+    </div>
+
+    <!-- 本文 -->
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <h3 class="font-semibold">本文</h3>
+        <button data-copy="body"
+                class="copy-btn text-sm px-2 py-1 bg-gray-200 rounded hover:bg-gray-300">
+          コピー
+        </button>
+      </div>
+      <textarea id="body" rows="12" readonly
+                class="w-full p-3 rounded border bg-gray-100 resize-y"></textarea>
+    </div>
+
+    <!-- ハッシュタグ -->
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <h3 class="font-semibold">ハッシュタグ</h3>
+        <button data-copy="hashtags"
+                class="copy-btn text-sm px-2 py-1 bg-gray-200 rounded hover:bg-gray-300">
+          コピー
+        </button>
+      </div>
+      <textarea id="hashtags" rows="3" readonly
+                class="w-full p-3 rounded border bg-gray-100"></textarea>
+    </div>
+  </section>
+
+<script>
+/**************** クリーニングロジック ****************/
+const COMPANIES=[/* --- 企業名リスト（省略なし） --- */'トヨタ自動車','ソニーグループ','東京エレクトロン','ソフトバンクグループ','任天堂','三菱UFJFG','三菱UFJ','ファーストリテイリング','ユニ・チャーム','武田薬品工業','三菱商事','本田技研工業','キーエンス','SUMCO','日本電信電話','NTT','バンダイナムコHD','三井住友FG','三井住友フィナンシャルグループ','セブン＆アイHD','花王','アステラス製薬','三井物産','日産自動車','日立製作所','ルネサスエレクトロニクス','KDDI','カプコン','みずほFG','イオン','キリンHD','第一三共','伊藤忠商事','スズキ','パナソニックHD','アドバンテスト','ソフトバンク','スクウェア・エニックスHD','オリックス','PPIH','アサヒグループHD','エーザイ','住友商事','マツダ','NEC','信越化学工業','メルカリ','コナミグループ','第一生命HD','ローソン','サッポロHD','中外製薬','丸紅','SUBARU','富士通','ファナック','サイバーエージェント','コーエーテクモHD','東京海上HD','三越伊勢丹HD','サントリー食品','塩野義製薬','豊田通商','三菱自動車工業','キヤノン','村田製作所','LY','野村HD','J.フロントリテイリング','日清食品HD','大塚HD','コマツ','いすゞ自動車','ニコン','ディー・エヌ・エー','SBIホールディングス','良品計画','味の素','小野薬品工業','ダイキン工業','ヤマハ発動機','三菱電機','りそなHD','ZOZO','キッコーマン','日本新薬','安川電機','日野自動車','ゆうちょ銀行','ツルハHD','カルビー','JCRファーマ','三菱重工業','日本取引所グループ','明治HD','JR東日本','大和証券G','ヤクルト本社','ANAホールディングス','日本郵政','東京電力HD','三井住友トラストHD','楽天銀行'];
+const DISCLAIMER='※本記事は銘柄に関する情報をもとに分析を行ったものであり、特定の投資行動を推奨するものではありません。投資に関する最終的な判断は、ご自身の責任にてお願いいたします。';
+const HASH_TAGS='#株式投資 #株 #株価 #業績 #投資 #銘柄分析 #資産運用 #新NISA #NISA #経済 #企業';
+
+function detectCompany(t){let bestPos=t.length+1,best='その他';for(const n of COMPANIES){const p=t.indexOf(n);if(p!==-1&&(p<bestPos||(p===bestPos&&n.length>best.length))){bestPos=p;best=n;if(p===0)break;}}return best;}
+const htmlPair=/<([A-Za-z][A-Za-z0-9]*)\\b[^>]*>([\\s\\S]*?)<\\/\\1>/g;
+function stripHtmlPairs(s){let prev;do{prev=s;s=s.replace(htmlPair,(_,__,inner)=>inner);}while(prev!==s);return s;}
+function stripBoldHeads(s){return s.replace(/^(\\s*#+\\s*)(.*)$/gm,(_,pre,body)=>pre+body.replace(/\\*\\*([^\\n]*?)\\*\\*/g,'$1'));}
+function cleanParen(s){return s.replace(/\\s*\\([^)]*(?:\\[[^\\]]+]|https?:\\/\\/)[^)]*\\)/g,'').replace(/\\s*\\(\\s*\\)/g,'').replace(/\\)\\s*(?=[。、，….,)|\\n|$)/g,'').replace(/[ \\t]{2,}/g,' ');}
+function stripInner(s){return s.replace(/\\*\\*[\\s\\u3000]*([^*]+?)[\\s\\u3000]*\\*\\*/g,'**$1**');}
+function padBold(s){return s.replace(/\\*\\*([^*]+?)\\*\\*/g,' **$1** ').replace(/ *\\n/g,'\\n').replace(/\\n */g,'\\n');}
+function ensureHeading(s){return s.replace(/\\n(?!\\n)(##\\s+)/g,'\\n\\n$1');}
+function dropPre(s){const idx=s.search(/^\\s*#+\\s/m);return idx>=0?s.slice(idx):s;}
+function unesc(s){return s.replace(/\\\\\\*\\\\\\*/g,'**');}
+function updAsOf(s){const d=new Date();return s.replace(/[0-9０-９]{1,2}月[0-9０-９]{1,2}日時点/g,`${d.getMonth()+1}月${d.getDate()}日時点`);}
+function cleanText(raw){let t=dropPre(raw);t=unesc(t);t=stripHtmlPairs(t);t=stripBoldHeads(t);t=updAsOf(t);t=cleanParen(t);t=stripInner(t);t=padBold(t);t=ensureHeading(t);return t.trimEnd()+'\\n';}
+
+/**************** UI ****************/
+const errMsg=document.getElementById('err');
+const outputSec=document.getElementById('output');
+document.getElementById('run').addEventListener('click',()=>{  
+  const raw=document.getElementById('input').value.trim();
+  if(!raw){errMsg.classList.remove('hidden');return;}
+  errMsg.classList.add('hidden');
+
+  // クリーニング
+  const cleaned=cleanText(raw);
+  const firstNL=cleaned.indexOf('\\n');
+  let title=firstNL!==-1?cleaned.slice(0,firstNL).trim():cleaned.trim();
+  title=title.replace(/^\\s*#+\\s*/,'');
+  const bodyPart=firstNL!==-1?cleaned.slice(firstNL+1).trimStart():'';  
+  const body=`${bodyPart.trim()}\\n\\n${DISCLAIMER}\\n`;
+  const hashtags=HASH_TAGS+(detectCompany(raw)==='その他'?'':` #${detectCompany(raw)}`);
+
+  // 表示
+  document.getElementById('title').value=title;
+  document.getElementById('body').value=body;
+  document.getElementById('hashtags').value=hashtags;
+  outputSec.classList.remove('hidden');
+});
+
+// コピー機能
+document.querySelectorAll('.copy-btn').forEach(btn=>{
+  btn.addEventListener('click',async()=>{
+    const id=btn.dataset.copy;
+    const txt=document.getElementById(id).value;
+    try{
+      await navigator.clipboard.writeText(txt);
+      btn.textContent='✓ コピー済み';
+      setTimeout(()=>btn.textContent='コピー',800);
+    }catch(e){alert('コピーに失敗しました');}
+  });
+});
+</script>
+</body>
+</html>
