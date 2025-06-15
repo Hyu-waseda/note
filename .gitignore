@@ -2,3 +2,4 @@
 .venv
 log
 prompts
+__pycache__

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>note クリーナー</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6 gap-8">
+  <h1 class="text-2xl font-bold">note クリーナー (Flask版)</h1>
+
+  <!-- 入力 -->
+  <section class="w-full max-w-5xl">
+    <textarea id="input" rows="12"
+      class="w-full p-3 rounded border resize-y"
+      placeholder="ここに Markdown 原稿を貼り付けて『変換』を押してください"></textarea>
+    <button id="run"
+      class="mt-3 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700">
+      変換
+    </button>
+    <p id="err" class="text-red-600 mt-2 hidden">Markdown を入力してください。</p>
+  </section>
+
+  <!-- 出力 -->
+  <section id="output" class="w-full max-w-5xl hidden flex-col gap-8">
+    <div>
+      <h3 class="font-semibold mb-1 flex items-center gap-2">
+        タイトル
+        <button data-copy="title"
+          class="copy-btn text-sm px-2 py-1 bg-gray-200 rounded hover:bg-gray-300">
+          コピー
+        </button>
+      </h3>
+      <textarea id="title" rows="2" readonly
+        class="w-full p-3 rounded border bg-gray-100"></textarea>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1 flex items-center gap-2">
+        本文
+        <button data-copy="body"
+          class="copy-btn text-sm px-2 py-1 bg-gray-200 rounded hover:bg-gray-300">
+          コピー
+        </button>
+      </h3>
+      <textarea id="body" rows="12" readonly
+        class="w-full p-3 rounded border bg-gray-100 resize-y"></textarea>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1 flex items-center gap-2">
+        ハッシュタグ
+        <button data-copy="hashtags"
+          class="copy-btn text-sm px-2 py-1 bg-gray-200 rounded hover:bg-gray-300">
+          コピー
+        </button>
+      </h3>
+      <textarea id="hashtags" rows="3" readonly
+        class="w-full p-3 rounded border bg-gray-100"></textarea>
+    </div>
+  </section>
+
+  <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>
